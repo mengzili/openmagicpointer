@@ -64,22 +64,38 @@ export class ActivityTracker {
  * Uses Electron's built-in desktopCapturer — no shell-out, no native deps beyond Electron.
  */
 export async function captureScreen(maxDim: number): Promise<ScreenCapture> {
-  const primary = screen.getPrimaryDisplay();
-  const { width: dw, height: dh } = primary.size;
-  const scale = Math.min(1, maxDim / Math.max(dw, dh));
-  const thumbW = Math.max(64, Math.floor(dw * scale));
-  const thumbH = Math.max(64, Math.floor(dh * scale));
-
+  const displays = screen.getAllDisplays();
   const sources = await desktopCapturer.getSources({
     types: ['screen'],
-    thumbnailSize: { width: thumbW, height: thumbH },
+    thumbnailSize: { width: maxDim, height: maxDim },
   });
   if (sources.length === 0) {
     throw new Error('No screen sources available');
   }
-  const primaryIdStr = String(primary.id);
-  const source =
-    sources.find(s => s.display_id === primaryIdStr) ?? sources[0];
+
+  // For single monitor, use the simple path
+  if (displays.length <= 1 || sources.length <= 1) {
+    return captureSingle(displays[0] || screen.getPrimaryDisplay(), sources, maxDim);
+  }
+
+  // Multi-monitor: capture the display where the cursor is (most relevant)
+  const cursor = screen.getCursorScreenPoint();
+  const activeDisplay = screen.getDisplayNearestPoint(cursor);
+  return captureSingle(activeDisplay, sources, maxDim);
+}
+
+function captureSingle(
+  display: Electron.Display,
+  sources: Electron.DesktopCapturerSource[],
+  maxDim: number,
+): ScreenCapture {
+  const { width: dw, height: dh } = display.size;
+  const scale = Math.min(1, maxDim / Math.max(dw, dh));
+  const thumbW = Math.max(64, Math.floor(dw * scale));
+  const thumbH = Math.max(64, Math.floor(dh * scale));
+
+  const displayIdStr = String(display.id);
+  const source = sources.find(s => s.display_id === displayIdStr) ?? sources[0];
 
   let img = source.thumbnail;
   const sz = img.getSize();

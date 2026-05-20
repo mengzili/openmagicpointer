@@ -1,10 +1,12 @@
 import { app, globalShortcut } from 'electron';
-import { Config, loadConfig } from './config';
-import { loadSecret } from './secret-store';
+import { Config, hasUsableAuth, loadConfig } from './config';
+import { loadSecrets } from './secret-store';
 import { OverlayWindow } from './overlay-window';
 import { Controller } from './controller';
 import { TrayController } from './tray';
 import { SetupWindow } from './setup-window';
+import { HistoryWindow } from './history-window';
+import { DigestWindow } from './digest-window';
 
 // MAGICPOINTER_TEST=1 short-circuits things that would interfere with Playwright
 // driven tests (skip the API-key check, don't start uiohook input capture, don't
@@ -27,17 +29,21 @@ app.on('window-all-closed', () => {
 let controller: Controller | null = null;
 let tray: TrayController | null = null;
 let overlay: OverlayWindow | null = null;
+let historyWin: HistoryWindow | null = null;
+let digestWin: DigestWindow | null = null;
 let activeCfg: Config | null = null;
 let setupOpen = false;
 
 app.whenReady().then(async () => {
   let cfg = loadConfig();
-  // OS-encrypted secret store as a fallback after env var.
-  if (!cfg.apiKey) cfg.apiKey = loadSecret();
+  // OS-encrypted secret store as a fallback after env vars.
+  const secrets = loadSecrets();
+  if (!cfg.apiKey && secrets.apiKey) cfg.apiKey = secrets.apiKey;
+  if (!cfg.authToken && secrets.authToken) cfg.authToken = secrets.authToken;
 
-  if (configNeedsKey(cfg) && !isTestMode) {
+  if (!hasUsableAuth(cfg) && !isTestMode) {
     const result = await openSetupWindow(cfg);
-    if (!result.saved || configNeedsKey(result.config)) {
+    if (!result.saved || !hasUsableAuth(result.config)) {
       // User cancelled or closed setup without providing a usable backend.
       app.quit();
       return;
@@ -51,10 +57,7 @@ app.whenReady().then(async () => {
 function startApp(cfg: Config): void {
   activeCfg = cfg;
   overlay = new OverlayWindow();
-  controller = new Controller(
-    { ...cfg, apiKey: cfg.apiKey || 'test-key-placeholder' },
-    overlay,
-  );
+  controller = new Controller(cfg, overlay);
 
   tray = new TrayController({
     onAskNow: () => { void controller!.askNow(); },
@@ -64,10 +67,19 @@ function startApp(cfg: Config): void {
       tray!.setEnabled(next);
     },
     onSettings: () => { void reopenSettings(); },
+    onHistory: () => {
+      if (!historyWin) historyWin = new HistoryWindow(controller!);
+      historyWin.show();
+    },
+    onDigest: () => {
+      if (!digestWin) digestWin = new DigestWindow();
+      digestWin.show();
+    },
     onQuit: () => app.quit(),
   });
 
   registerHotkey(cfg.hotkeyAsk, () => { void controller!.askNow(); });
+  registerHotkey(cfg.hotkeyExplain, () => { void controller!.explainNow(); });
   registerHotkey(cfg.hotkeyPause, () => {
     const next = !controller!.isEnabled();
     controller!.setEnabled(next);
@@ -85,7 +97,7 @@ function startApp(cfg: Config): void {
 async function reopenSettings(): Promise<void> {
   if (setupOpen || !activeCfg) return;
   const result = await openSetupWindow(activeCfg);
-  if (result.saved && !configNeedsKey(result.config)) {
+  if (result.saved && hasUsableAuth(result.config)) {
     activeCfg = result.config;
     controller?.setConfig(result.config);
   }
@@ -98,22 +110,6 @@ async function openSetupWindow(cfg: Config) {
     return await setup.show(cfg);
   } finally {
     setupOpen = false;
-  }
-}
-
-function configNeedsKey(cfg: Config): boolean {
-  // Local OpenAI-compatible servers (Ollama, LM Studio, llama.cpp) don't need
-  // an API key. Everything else does.
-  const local = cfg.provider === 'openai' && !!cfg.baseURL && isLocalUrl(cfg.baseURL);
-  return !local && !cfg.apiKey;
-}
-
-function isLocalUrl(url: string): boolean {
-  try {
-    const host = new URL(url).hostname.toLowerCase();
-    return host === 'localhost' || host === '127.0.0.1' || host === '::1' || host.endsWith('.local');
-  } catch {
-    return false;
   }
 }
 

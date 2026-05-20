@@ -1,13 +1,15 @@
 import { BrowserWindow, ipcMain } from 'electron';
 import * as path from 'path';
 import { Config, saveConfig, ProviderId } from './config';
-import { saveSecret, hasSecret } from './secret-store';
+import { saveSecrets, hasAnySecret, loadSecrets } from './secret-store';
 
 export interface SetupSavePayload {
   provider: ProviderId;
   baseURL: string;
   model: string;
-  apiKey: string; // empty string = "don't change"
+  aggressiveness: number;
+  apiKey: string;
+  authToken: string;
 }
 
 export interface SetupResult {
@@ -45,8 +47,12 @@ export class SetupWindow {
         provider: cfg.provider,
         baseURL: cfg.baseURL,
         model: cfg.model,
-        // We never echo the actual key back — UI just gets a "key is set" bit.
-        hasKey: Boolean(cfg.apiKey) || hasSecret(),
+        aggressiveness: cfg.aggressiveness || 3,
+        hasKey: Boolean(cfg.apiKey) || hasAnySecret(),
+        hasAuthToken: Boolean(cfg.authToken),
+        envBaseURL: process.env.ANTHROPIC_BASE_URL || '',
+        envHasAuthToken: Boolean(process.env.ANTHROPIC_AUTH_TOKEN),
+        envHasApiKey: Boolean(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY),
       }));
 
       ipcMain.handle('setup:save', (_event, payload: SetupSavePayload) => {
@@ -55,20 +61,29 @@ export class SetupWindow {
           provider: payload.provider,
           baseURL: payload.baseURL.trim(),
           model: payload.model.trim() || cfg.model,
+          aggressiveness: payload.aggressiveness || 3,
         };
         saveConfig(next);
 
         const newKey = (payload.apiKey ?? '').trim();
-        if (newKey) {
+        const newAuthToken = (payload.authToken ?? '').trim();
+
+        if (newKey || newAuthToken) {
+          const existing = loadSecrets();
+          const merged = {
+            apiKey: newKey || existing.apiKey,
+            authToken: newAuthToken || existing.authToken,
+          };
           try {
-            saveSecret(newKey);
-            next.apiKey = newKey;
+            saveSecrets(merged);
+            next.apiKey = merged.apiKey;
+            next.authToken = merged.authToken;
           } catch (e: any) {
-            return { ok: false, error: e?.message ?? 'Failed to save key' };
+            return { ok: false, error: e?.message ?? 'Failed to save credentials' };
           }
         } else {
-          // No new key entered — keep whatever was already loaded into cfg.
           next.apiKey = cfg.apiKey;
+          next.authToken = cfg.authToken;
         }
 
         saved = true;
@@ -82,8 +97,8 @@ export class SetupWindow {
       });
 
       this.win = new BrowserWindow({
-        width: 560,
-        height: 580,
+        width: 580,
+        height: 680,
         title: 'OpenMagicPointer — Setup',
         resizable: false,
         maximizable: false,

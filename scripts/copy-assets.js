@@ -7,7 +7,7 @@ const path = require('path');
 const ROOT_SRC = path.join(__dirname, '..', 'src');
 const ROOT_DST = path.join(__dirname, '..', 'dist');
 
-for (const dir of ['overlay', 'setup']) {
+for (const dir of ['overlay', 'setup', 'history', 'digest']) {
   const src = path.join(ROOT_SRC, dir);
   const dst = path.join(ROOT_DST, dir);
   if (!fs.existsSync(src)) continue;

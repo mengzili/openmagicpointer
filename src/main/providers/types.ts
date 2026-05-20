@@ -6,6 +6,16 @@ export interface HintResult {
   hint: string;
   confidence: 'low' | 'medium' | 'high';
   reason: string;
+  category: string;
+}
+
+export interface HintEntry {
+  hint: string;
+  confidence: 'low' | 'medium' | 'high';
+  reason: string;
+  category: string;
+  timestamp: number;
+  userRequested: boolean;
 }
 
 export interface AnalyzeInput {
@@ -16,63 +26,119 @@ export interface AnalyzeInput {
   screenHeight: number;
   idleMs: number;
   userRequested: boolean;
+  aggressiveness?: number;
 }
 
 export interface VlmProvider {
   analyze(input: AnalyzeInput): Promise<HintResult | null>;
+  explain?(input: Omit<AnalyzeInput, 'userRequested' | 'idleMs' | 'aggressiveness'>): Promise<ExplainResult | null>;
 }
 
-export const SYSTEM_PROMPT = `You are Magic Pointer, an unobtrusive assistant that watches a user's screen and offers proactive hints only when they would clearly help.
+export const SYSTEM_PROMPT = `You are Magic Pointer, a creative productivity coach that watches a user's screen and proactively suggests what they should do next.
 
-The user shares: a screenshot of what they're looking at, their cursor position, and how long they've been idle (not moving the mouse, not typing). Decide whether a brief hint would help right now.
+You receive: a screenshot, cursor position, and idle time. Your job is NOT to describe what's on screen — the user can see that. Your job is to creatively suggest an ACTION they could take right now.
 
-Offer a hint ONLY when there's a clear, specific signal the user is stuck, confused, or about to make a mistake. Good reasons:
-- A dialog or error message is visible and they're hovering without acting
-- A code editor shows an obvious bug or error squiggle near the cursor
-- A form has an obvious validation problem
-- They've opened a settings panel and the relevant toggle is right there
-- A clear next action is needed (click Save, password needs a number, etc.)
+## Adaptive tone
 
-Do NOT offer hints for:
-- Normal reading, writing, browsing, scrolling — even if slow
-- Watching videos or media
-- Anything the user clearly already knows how to do
-- Speculative "you could try…" advice with no signal of stuckness
+Pick your tone based on context:
+- **Coach mode** (user is idle, browsing aimlessly, staring at inbox, unfocused): Be opinionated and direct. "Draft a reply to that top email — even two sentences moves it forward." / "You've been on this page a while — time to switch to something with a deadline."
+- **Nudge mode** (user is actively working but could use a tip): Be gentler. "Meeting in 15 min — maybe prep one talking point?" / "That function is getting long — extract the loop into a helper?"
+
+## What makes a great hint
+
+- Suggests a SPECIFIC next action, not a vague observation
+- Is creative — surprises the user with an angle they hadn't considered
+- References what's actually visible (app, content, time cues)
+- Feels like a smart friend looking over your shoulder, not a robot reading pixels
+
+## Examples of great hints
+
+- "That PR has 3 unresolved comments — knock those out before your 2pm."
+- "You've scrolled past this article twice — either bookmark it or close the tab."
+- "Inbox zero is 4 emails away. Start with the oldest one."
+- "This code works but the variable names are cryptic — rename before you forget what they mean."
+- "You've been idle 30 seconds on a blank doc — just write one bad sentence to break the ice."
+- "Your 2pm with Sarah is in 15 min — prep one talking point from last time."
+- "You've been on Reddit for 12 minutes — time to switch back to that deadline."
+
+## When NOT to hint
+
 - Privacy-sensitive content (banking, medical, private chats) — return needs_hint=false silently
+- User is watching video/media — return needs_hint=false
 
-Be conservative. Most of the time return needs_hint=false. False positives are worse than false negatives.
+## Output format
 
-When you do offer a hint:
-- One short sentence (≤ 120 characters)
-- Actionable and specific to what's on screen
-- In the user's language (infer from the screenshot)
-- Never patronizing
-
-Return JSON only — no prose. The JSON must have fields: needs_hint (boolean), hint (string), confidence ("low"|"medium"|"high"), reason (string).`;
+Return JSON only — no prose, no markdown fences. Fields:
+- needs_hint (boolean): true if you have something useful to suggest
+- hint (string): one sentence, ≤ 140 characters, actionable
+- confidence ("low"|"medium"|"high")
+- reason (string): one phrase explaining your reasoning (for debugging)
+- category (string): one of "coding", "email", "browsing", "productivity", "communication", "break", "other"`;
 
 export const SCHEMA = {
   type: 'object',
   properties: {
-    needs_hint: { type: 'boolean', description: 'True only if you are clearly helping.' },
-    hint: { type: 'string', description: 'The one-sentence hint, or empty string.' },
+    needs_hint: { type: 'boolean', description: 'True if you have a useful suggestion.' },
+    hint: { type: 'string', description: 'One actionable sentence, or empty string.' },
     confidence: { type: 'string', enum: ['low', 'medium', 'high'] },
     reason: { type: 'string', description: 'One short phrase explaining why (for debugging).' },
+    category: { type: 'string', enum: ['coding', 'email', 'browsing', 'productivity', 'communication', 'break', 'other'] },
   },
-  required: ['needs_hint', 'hint', 'confidence', 'reason'],
+  required: ['needs_hint', 'hint', 'confidence', 'reason', 'category'],
   additionalProperties: false,
 } as const;
 
-export function formatUserText(input: AnalyzeInput): string {
+export const EXPLAIN_PROMPT = `You are a universal explainer. The user pressed a hotkey asking you to explain whatever is near their cursor on screen.
+
+Look at the screenshot and cursor position. Identify the element, text, error message, code, UI control, or content nearest to the cursor and explain it in plain, simple language.
+
+Rules:
+- Be concise: 1-3 sentences max
+- Explain the WHY and WHAT, not just restate what's visible
+- For error messages: explain what caused it and how to fix it
+- For code: explain what it does in plain English
+- For UI elements: explain what they do and when to use them
+- For dense text: summarize the key point
+
+Return JSON only. Fields: explanation (string, 1-3 sentences), topic (string, 2-3 word label for what you explained).`;
+
+export interface ExplainResult {
+  explanation: string;
+  topic: string;
+}
+
+export function parseExplainJson(text: string): ExplainResult | null {
+  try {
+    const parsed = JSON.parse(stripFences(text));
+    return {
+      explanation: String(parsed.explanation ?? '').trim(),
+      topic: String(parsed.topic ?? '').trim(),
+    };
+  } catch {
+    const clean = stripFences(text).trim();
+    if (clean.length > 0) return { explanation: clean, topic: '' };
+    return null;
+  }
+}
+
+export function formatUserText(input: AnalyzeInput, aggressiveness?: number): string {
+  const level = aggressiveness ?? 3;
+  const tone = level <= 2
+    ? 'Only suggest something if the user is clearly stuck or about to make a mistake.'
+    : level >= 4
+      ? 'Be proactive — suggest next actions freely, even if the user might already know.'
+      : 'Suggest what they should do next if you can add value.';
+
   const note = input.userRequested
-    ? 'The user PRESSED THE HOTKEY to explicitly ask for help. Be more willing to offer a useful hint, but still skip if nothing is obviously actionable.'
-    : `The user has been idle for ${Math.round(input.idleMs / 1000)} seconds. Apply the conservative bar.`;
-  return `Cursor at (${input.cursorX}, ${input.cursorY}) on a ${input.screenWidth}×${input.screenHeight} screen capture. ${note}`;
+    ? 'The user PRESSED THE HOTKEY to explicitly ask for a suggestion. Always offer a creative, actionable hint about what they should do next.'
+    : `The user has been idle for ${Math.round(input.idleMs / 1000)} seconds. ${tone}`;
+  return `Cursor at (${input.cursorX}, ${input.cursorY}) on a ${input.screenWidth}×${input.screenHeight} screen. ${note}`;
 }
 
 export function parseHintJson(text: string): HintResult | null {
   let parsed: any;
   try {
-    parsed = JSON.parse(text);
+    parsed = JSON.parse(stripFences(text));
   } catch {
     console.warn('Analyzer: bad JSON from model:', text.slice(0, 200));
     return null;
@@ -82,5 +148,12 @@ export function parseHintJson(text: string): HintResult | null {
     hint: String(parsed.hint ?? '').trim(),
     confidence: (parsed.confidence ?? 'low') as HintResult['confidence'],
     reason: String(parsed.reason ?? ''),
+    category: String(parsed.category ?? 'other'),
   };
+}
+
+function stripFences(s: string): string {
+  const t = s.trim();
+  if (!t.startsWith('```')) return t;
+  return t.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
 }

@@ -1,10 +1,13 @@
 import {
   AnalyzeInput,
   HintResult,
+  ExplainResult,
   SYSTEM_PROMPT,
+  EXPLAIN_PROMPT,
   VlmProvider,
   formatUserText,
   parseHintJson,
+  parseExplainJson,
 } from './types';
 
 // Plain fetch — no extra SDK dependency. Targets any OpenAI-compatible
@@ -44,7 +47,7 @@ export class OpenAIProvider implements VlmProvider {
           role: 'user',
           content: [
             { type: 'image_url', image_url: { url: dataUrl } },
-            { type: 'text', text: formatUserText(input) },
+            { type: 'text', text: formatUserText(input, input.aggressiveness) },
           ],
         },
       ],
@@ -67,11 +70,47 @@ export class OpenAIProvider implements VlmProvider {
       const json: any = await res.json();
       const content = json?.choices?.[0]?.message?.content;
       if (typeof content !== 'string' || content.length === 0) return null;
-      // Some servers wrap JSON in code fences even with response_format set.
-      const stripped = stripFences(content);
-      return parseHintJson(stripped);
+      return parseHintJson(content);
     } catch (e: any) {
       console.warn('OpenAIProvider error:', e?.message ?? e);
+      return null;
+    }
+  }
+
+  async explain(input: Omit<AnalyzeInput, 'userRequested' | 'idleMs' | 'aggressiveness'>): Promise<ExplainResult | null> {
+    const dataUrl = `data:image/png;base64,${input.pngBuffer.toString('base64')}`;
+    const body = {
+      model: this.model,
+      max_tokens: 300,
+      temperature: 0,
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: EXPLAIN_PROMPT },
+        {
+          role: 'user',
+          content: [
+            { type: 'image_url', image_url: { url: dataUrl } },
+            { type: 'text', text: `Cursor at (${input.cursorX}, ${input.cursorY}) on a ${input.screenWidth}×${input.screenHeight} screen. Explain what's near the cursor.` },
+          ],
+        },
+      ],
+    };
+    try {
+      const res = await fetch(`${this.baseURL}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(this.apiKey ? { Authorization: `Bearer ${this.apiKey}` } : {}),
+        },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) return null;
+      const json: any = await res.json();
+      const content = json?.choices?.[0]?.message?.content;
+      if (typeof content !== 'string') return null;
+      return parseExplainJson(content);
+    } catch (e: any) {
+      console.warn('OpenAIProvider explain error:', e?.message ?? e);
       return null;
     }
   }
@@ -83,10 +122,4 @@ async function safeText(res: Response): Promise<string> {
   } catch {
     return '';
   }
-}
-
-function stripFences(s: string): string {
-  const t = s.trim();
-  if (!t.startsWith('```')) return t;
-  return t.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
 }

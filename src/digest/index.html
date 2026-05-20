@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Daily Digest</title>
+    <link rel="stylesheet" href="digest.css" />
+  </head>
+  <body>
+    <header><h1>Daily Digest</h1><span id="date"></span></header>
+    <div class="stats">
+      <div class="stat"><span class="stat-value" id="totalMin">0</span><span class="stat-label">minutes tracked</span></div>
+      <div class="stat"><span class="stat-value" id="hintCount">0</span><span class="stat-label">hints given</span></div>
+      <div class="stat"><span class="stat-value" id="peakHour">-</span><span class="stat-label">peak hour</span></div>
+      <div class="stat"><span class="stat-value" id="topCat">-</span><span class="stat-label">top category</span></div>
+    </div>
+    <div class="panels">
+      <section class="panel" id="catPanel"><h2>Time by Category</h2><div id="catBars"></div></section>
+      <section class="panel" id="weekPanel"><h2>This Week</h2><div id="weekChart"></div></section>
+    </div>
+    <script src="digest.js"></script>
+  </body>
+</html>

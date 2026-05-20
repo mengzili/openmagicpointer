@@ -11,9 +11,11 @@
         <div class="dot" aria-hidden="true"></div>
         <div>
           <h1>OpenMagicPointer</h1>
-          <p class="subtitle">Pick a vision-language backend and paste your key.</p>
+          <p class="subtitle">Pick a vision-language backend and paste your credentials.</p>
         </div>
       </header>
+
+      <div id="envBanner" class="banner" hidden></div>
 
       <form id="form" novalidate>
         <label class="field">
@@ -26,7 +28,7 @@
         </label>
 
         <label class="field" id="baseURLRow">
-          <span class="label-text">Endpoint URL</span>
+          <span class="label-text">Endpoint URL <span class="muted" id="baseURLOptional"></span></span>
           <input
             id="baseURL"
             type="url"
@@ -34,12 +36,7 @@
             autocomplete="off"
             spellcheck="false"
           />
-          <span class="hint">
-            Examples: <code>https://api.openai.com/v1</code>,
-            <code>http://localhost:11434/v1</code> (Ollama),
-            <code>https://openrouter.ai/api/v1</code>,
-            <code>https://generativelanguage.googleapis.com/v1beta/openai</code> (Gemini)
-          </span>
+          <span class="hint" id="baseURLHint"></span>
         </label>
 
         <label class="field">
@@ -56,7 +53,17 @@
         </label>
 
         <label class="field">
-          <span class="label-text">API key</span>
+          <span class="label-text">Hint frequency</span>
+          <div class="slider-row">
+            <span class="slider-label">Quiet</span>
+            <input id="aggressiveness" type="range" min="1" max="5" step="1" value="3" />
+            <span class="slider-label">Proactive</span>
+          </div>
+          <span class="hint" id="aggressivenessHint">Level 3: balanced — hints when idle and useful.</span>
+        </label>
+
+        <label class="field">
+          <span class="label-text">API key <span class="muted">(x-api-key header)</span></span>
           <input
             id="apiKey"
             type="password"
@@ -64,9 +71,21 @@
             autocomplete="off"
             spellcheck="false"
           />
-          <span class="hint" id="apiKeyHint">
-            Stored encrypted via your OS keychain. Leave blank to keep the existing key, or
-            to use the matching <code>*_API_KEY</code> environment variable.
+          <span class="hint" id="apiKeyHint"></span>
+        </label>
+
+        <label class="field" id="authTokenRow">
+          <span class="label-text">Auth token <span class="muted">(Bearer header — for proxies / claude-code-router)</span></span>
+          <input
+            id="authToken"
+            type="password"
+            placeholder="…"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <span class="hint" id="authTokenHint">
+            Sent as <code>Authorization: Bearer …</code>. Use this for the Anthropic SDK's
+            <code>ANTHROPIC_AUTH_TOKEN</code> path — local proxies, claude-code-router, LiteLLM, etc.
           </span>
         </label>
 

@@ -5,6 +5,8 @@ export interface TrayCallbacks {
   onAskNow: () => void;
   onTogglePause: () => void;
   onSettings: () => void;
+  onHistory: () => void;
+  onDigest: () => void;
   onQuit: () => void;
 }
 
@@ -39,6 +41,8 @@ export class TrayController {
       },
       { label: 'Hint now', click: () => this.cb.onAskNow() },
       { type: 'separator' },
+      { label: 'View History', click: () => this.cb.onHistory() },
+      { label: 'Daily Digest', click: () => this.cb.onDigest() },
       { label: 'Settings…', click: () => this.cb.onSettings() },
       { type: 'separator' },
       { label: `OpenMagicPointer v${app.getVersion()}`, enabled: false },

@@ -1,0 +1,20 @@
+node_modules/
+dist/
+release/
+*.log
+.DS_Store
+.env
+.env.*
+!.env.example
+config.json
+
+# Editor / OS junk
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+
+# Test output
+test-results/
+playwright-report/
+coverage/

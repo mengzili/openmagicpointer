@@ -1,0 +1,98 @@
+{
+  "name": "openmagicpointer",
+  "version": "0.1.0",
+  "description": "Open-source proactive on-screen hints for Windows — an alternative to Google Gemini Magic Pointer, powered by your own Anthropic Claude API key.",
+  "main": "dist/main/index.js",
+  "homepage": "https://github.com/mengzili/openmagicpointer#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mengzili/openmagicpointer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mengzili/openmagicpointer/issues"
+  },
+  "author": {
+    "name": "Zili Meng",
+    "email": "zilim@ust.hk",
+    "url": "https://github.com/mengzili"
+  },
+  "license": "MIT",
+  "keywords": [
+    "electron",
+    "windows",
+    "anthropic",
+    "claude",
+    "assistant",
+    "overlay",
+    "magic-pointer",
+    "screen-capture",
+    "tray-app",
+    "ai"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/copy-assets.js",
+    "start": "npm run build && electron .",
+    "dev": "npm run build && electron . --dev",
+    "pack": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder --win",
+    "dist:x64": "npm run build && electron-builder --win --x64",
+    "dist:arm64": "npm run build && electron-builder --win --arm64",
+    "test:unit": "vitest run tests/unit tests/integration",
+    "test:e2e": "npm run build && playwright test",
+    "test": "npm run test:unit && npm run test:e2e"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.40.0",
+    "uiohook-napi": "^1.5.4"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "@types/node": "^20.0.0",
+    "electron": "^32.0.0",
+    "electron-builder": "^25.0.0",
+    "playwright": "^1.60.0",
+    "typescript": "^5.4.0",
+    "vitest": "^2.1.9"
+  },
+  "build": {
+    "appId": "com.openmagicpointer.app",
+    "productName": "OpenMagicPointer",
+    "copyright": "Copyright © 2026 Zili Meng",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "node_modules/uiohook-napi/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64", "arm64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64", "arm64"]
+        }
+      ],
+      "artifactName": "${productName}-${version}-${arch}-${os}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "OpenMagicPointer",
+      "artifactName": "${productName}-Setup-${version}-${arch}.${ext}"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-${arch}-portable.${ext}"
+    }
+  }
+}

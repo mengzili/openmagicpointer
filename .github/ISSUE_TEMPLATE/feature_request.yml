@@ -1,0 +1,29 @@
+name: Feature request
+description: Suggest a change or new capability.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Quick note on scope — OpenMagicPointer prefers smaller and simpler over bigger and more configurable. Features that fit that mindset land faster.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: Describe the user need, not the implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Your proposal
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you've considered
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?

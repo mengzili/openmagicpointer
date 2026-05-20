@@ -1,0 +1,63 @@
+name: Bug report
+description: Something is broken or doesn't behave the way the README says it should.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug. Please redact API keys and anything sensitive from screenshots and logs before posting.
+  - type: input
+    id: version
+    attributes:
+      label: OpenMagicPointer version
+      description: Right-click the tray icon — the version is in the menu.
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Windows version
+      placeholder: "Windows 11 23H2, build 22631.4317"
+    validations:
+      required: true
+  - type: dropdown
+    id: arch
+    attributes:
+      label: Architecture
+      options:
+        - x64
+        - arm64
+        - "Don't know"
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Launch OpenMagicPointer
+        2. Open Notepad and wait 10s
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What actually happened
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / screenshots
+      description: |
+        Console output (if running from `npm start`), a screenshot of the bubble, or anything else relevant.
+        Please redact sensitive content first.
+      render: shell

@@ -1,0 +1,66 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+  font-family: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
+  color: #f4f5fa;
+}
+
+.bubble {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  max-width: 380px;
+  padding: 12px 14px 12px 14px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(28, 30, 38, 0.94), rgba(38, 42, 56, 0.94));
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 0 0 1px rgba(122, 140, 255, 0.45),
+    0 12px 32px rgba(0, 0, 0, 0.45),
+    0 2px 6px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  opacity: 0;
+  transform: translateY(-4px) scale(0.98);
+  transition: opacity 200ms ease, transform 200ms ease;
+  font-size: 13.5px;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+  pointer-events: none;
+}
+
+.bubble.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.bubble.hidden {
+  opacity: 0;
+}
+
+.dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #b8c6ff, #5d7bff 70%, #3a4fcc);
+  box-shadow: 0 0 8px rgba(122, 140, 255, 0.6);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.25); opacity: 0.75; }
+}
+
+.text {
+  flex: 1 1 auto;
+  word-break: break-word;
+  white-space: pre-wrap;
+}

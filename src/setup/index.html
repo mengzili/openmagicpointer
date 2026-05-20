@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>OpenMagicPointer — Setup</title>
+    <link rel="stylesheet" href="setup.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <div class="dot" aria-hidden="true"></div>
+        <div>
+          <h1>OpenMagicPointer</h1>
+          <p class="subtitle">Pick a vision-language backend and paste your key.</p>
+        </div>
+      </header>
+
+      <form id="form" novalidate>
+        <label class="field">
+          <span class="label-text">Provider</span>
+          <select id="provider" required>
+            <option value="anthropic">Anthropic Claude (native SDK)</option>
+            <option value="openai">OpenAI-compatible endpoint</option>
+          </select>
+          <span class="hint" id="providerHint"></span>
+        </label>
+
+        <label class="field" id="baseURLRow">
+          <span class="label-text">Endpoint URL</span>
+          <input
+            id="baseURL"
+            type="url"
+            placeholder="https://api.openai.com/v1"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <span class="hint">
+            Examples: <code>https://api.openai.com/v1</code>,
+            <code>http://localhost:11434/v1</code> (Ollama),
+            <code>https://openrouter.ai/api/v1</code>,
+            <code>https://generativelanguage.googleapis.com/v1beta/openai</code> (Gemini)
+          </span>
+        </label>
+
+        <label class="field">
+          <span class="label-text">Model</span>
+          <input
+            id="model"
+            type="text"
+            placeholder="claude-opus-4-7"
+            autocomplete="off"
+            spellcheck="false"
+            required
+          />
+          <span class="hint" id="modelHint"></span>
+        </label>
+
+        <label class="field">
+          <span class="label-text">API key</span>
+          <input
+            id="apiKey"
+            type="password"
+            placeholder="sk-…"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <span class="hint" id="apiKeyHint">
+            Stored encrypted via your OS keychain. Leave blank to keep the existing key, or
+            to use the matching <code>*_API_KEY</code> environment variable.
+          </span>
+        </label>
+
+        <div id="error" class="error" hidden></div>
+
+        <div class="actions">
+          <button id="cancel" type="button" class="ghost">Cancel</button>
+          <button id="save" type="submit" class="primary">Save &amp; continue</button>
+        </div>
+      </form>
+    </main>
+    <script src="setup.js"></script>
+  </body>
+</html>

@@ -74,10 +74,11 @@ OpenMagicPointer talks to one of two kinds of backend:
 - `provider: "anthropic"` — uses the [Anthropic SDK](https://docs.anthropic.com/) directly. Best output quality on Claude models.
 - `provider: "openai"` — talks to any **OpenAI-compatible** Chat Completions endpoint. That includes OpenAI itself, Azure OpenAI, [OpenRouter](https://openrouter.ai/), Groq, Together, Google Gemini's [OpenAI-compat endpoint](https://ai.google.dev/gemini-api/docs/openai), and most local servers — [Ollama](https://ollama.com/) (`/v1`), [LM Studio](https://lmstudio.ai/), `llama.cpp` server, vLLM, etc.
 
-Set the config in either of two ways:
+There are three ways to provide a key:
 
-1. **Environment variable** — `ANTHROPIC_API_KEY` (for the Anthropic provider) or `OPENAI_API_KEY` (for the OpenAI-compatible provider). Recommended.
-2. **Config file** — `%APPDATA%\OpenMagicPointer\config.json`. Examples below.
+1. **First-launch setup window.** On a fresh install with no key, the app opens a settings panel where you pick provider, model, URL, and paste your key. The key is encrypted via your OS keychain (DPAPI on Windows) and stored separately from `config.json`. Reopen the window any time via **tray → Settings…**.
+2. **Environment variable** — `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`. Wins over the saved key if both are present.
+3. **Config file** — `%APPDATA%\OpenMagicPointer\config.json` for non-secret fields. Examples below. (The key is *never* written here — it lives encrypted in `secret.bin` next to it.)
 
 ### Example: Anthropic Claude (default)
 
@@ -148,7 +149,7 @@ Hotkey strings are [Electron accelerators](https://www.electronjs.org/docs/lates
 After install, OpenMagicPointer lives in the **system tray** (blue dot = active, grey = paused).
 
 - **Left-click the tray icon** — ask for a hint now.
-- **Right-click the tray icon** — pause/resume, ask now, quit, version.
+- **Right-click the tray icon** — pause/resume, ask now, settings, quit, version.
 - **`F8`** — same as "ask now" (works globally, anywhere).
 - **`F9`** — pause/resume.
 - **`Ctrl+Shift+F12`** — quit.

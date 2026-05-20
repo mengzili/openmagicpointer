@@ -4,6 +4,7 @@ import { circlePng } from './png';
 export interface TrayCallbacks {
   onAskNow: () => void;
   onTogglePause: () => void;
+  onSettings: () => void;
   onQuit: () => void;
 }
 
@@ -37,6 +38,8 @@ export class TrayController {
         click: () => this.cb.onTogglePause(),
       },
       { label: 'Hint now', click: () => this.cb.onAskNow() },
+      { type: 'separator' },
+      { label: 'Settings…', click: () => this.cb.onSettings() },
       { type: 'separator' },
       { label: `OpenMagicPointer v${app.getVersion()}`, enabled: false },
       { type: 'separator' },

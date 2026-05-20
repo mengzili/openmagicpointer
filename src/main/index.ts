@@ -1,8 +1,10 @@
-import { app, dialog, globalShortcut } from 'electron';
-import { loadConfig, configPath } from './config';
+import { app, globalShortcut } from 'electron';
+import { Config, loadConfig } from './config';
+import { loadSecret } from './secret-store';
 import { OverlayWindow } from './overlay-window';
 import { Controller } from './controller';
 import { TrayController } from './tray';
+import { SetupWindow } from './setup-window';
 
 // MAGICPOINTER_TEST=1 short-circuits things that would interfere with Playwright
 // driven tests (skip the API-key check, don't start uiohook input capture, don't
@@ -25,24 +27,29 @@ app.on('window-all-closed', () => {
 let controller: Controller | null = null;
 let tray: TrayController | null = null;
 let overlay: OverlayWindow | null = null;
+let activeCfg: Config | null = null;
+let setupOpen = false;
 
-app.whenReady().then(() => {
-  const cfg = loadConfig();
+app.whenReady().then(async () => {
+  let cfg = loadConfig();
+  // OS-encrypted secret store as a fallback after env var.
+  if (!cfg.apiKey) cfg.apiKey = loadSecret();
 
-  // Allow no API key when targeting a local OpenAI-compatible server (Ollama,
-  // LM Studio, llama.cpp, vLLM) — those typically don't need one.
-  const needsKey = !(cfg.provider === 'openai' && cfg.baseURL && isLocalUrl(cfg.baseURL));
-  if (needsKey && !cfg.apiKey && !isTestMode) {
-    const envName = cfg.provider === 'openai' ? 'OPENAI_API_KEY' : 'ANTHROPIC_API_KEY';
-    dialog.showErrorBox(
-      'OpenMagicPointer',
-      `No ${envName} found for provider "${cfg.provider}".\n\n` +
-        `Set the ${envName} environment variable, or add an "apiKey" field to:\n${configPath()}`,
-    );
-    app.quit();
-    return;
+  if (configNeedsKey(cfg) && !isTestMode) {
+    const result = await openSetupWindow(cfg);
+    if (!result.saved || configNeedsKey(result.config)) {
+      // User cancelled or closed setup without providing a usable backend.
+      app.quit();
+      return;
+    }
+    cfg = result.config;
   }
 
+  startApp(cfg);
+});
+
+function startApp(cfg: Config): void {
+  activeCfg = cfg;
   overlay = new OverlayWindow();
   controller = new Controller(
     { ...cfg, apiKey: cfg.apiKey || 'test-key-placeholder' },
@@ -56,10 +63,10 @@ app.whenReady().then(() => {
       controller!.setEnabled(next);
       tray!.setEnabled(next);
     },
+    onSettings: () => { void reopenSettings(); },
     onQuit: () => app.quit(),
   });
 
-  // Global hotkeys — registered in both modes so tests can confirm they bind.
   registerHotkey(cfg.hotkeyAsk, () => { void controller!.askNow(); });
   registerHotkey(cfg.hotkeyPause, () => {
     const next = !controller!.isEnabled();
@@ -69,13 +76,37 @@ app.whenReady().then(() => {
   registerHotkey(cfg.hotkeyQuit, () => app.quit());
 
   if (isTestMode) {
-    // Expose internals on a global so Playwright's electronApp.evaluate() can
-    // drive the app without IPC boilerplate.
     (global as any).__test = { overlay, controller, tray };
   } else {
     controller.start();
   }
-});
+}
+
+async function reopenSettings(): Promise<void> {
+  if (setupOpen || !activeCfg) return;
+  const result = await openSetupWindow(activeCfg);
+  if (result.saved && !configNeedsKey(result.config)) {
+    activeCfg = result.config;
+    controller?.setConfig(result.config);
+  }
+}
+
+async function openSetupWindow(cfg: Config) {
+  setupOpen = true;
+  try {
+    const setup = new SetupWindow();
+    return await setup.show(cfg);
+  } finally {
+    setupOpen = false;
+  }
+}
+
+function configNeedsKey(cfg: Config): boolean {
+  // Local OpenAI-compatible servers (Ollama, LM Studio, llama.cpp) don't need
+  // an API key. Everything else does.
+  const local = cfg.provider === 'openai' && !!cfg.baseURL && isLocalUrl(cfg.baseURL);
+  return !local && !cfg.apiKey;
+}
 
 function isLocalUrl(url: string): boolean {
   try {

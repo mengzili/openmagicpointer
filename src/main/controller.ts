@@ -50,6 +50,19 @@ export class Controller {
     this.overlay.hide();
   }
 
+  setConfig(cfg: Config): void {
+    this.cfg = cfg;
+    this.analyzer = new Analyzer({
+      provider: cfg.provider,
+      apiKey: cfg.apiKey,
+      model: cfg.model,
+      baseURL: cfg.baseURL,
+    });
+    // Force the next tick to re-analyse even if the screen hasn't changed.
+    this.lastFingerprint = '';
+    if (this.enabled && this.timer) this.startTimer();
+  }
+
   setEnabled(enabled: boolean): void {
     this.enabled = enabled;
     if (enabled) {

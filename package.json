@@ -1,6 +1,6 @@
 {
   "name": "openmagicpointer",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Open-source proactive on-screen hints for Windows — an alternative to Google Gemini Magic Pointer, powered by your own Anthropic Claude API key.",
   "main": "dist/main/index.js",
   "homepage": "https://github.com/mengzili/openmagicpointer#readme",

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-05-20
+
+### Added
+
+- **First-launch setup window.** When no API key is configured, instead of erroring out and quitting, the app opens a small settings panel where you can pick the provider, endpoint URL, model, and paste your key. Reopenable any time from the tray "Settings…" menu.
+- **OS-encrypted secret storage.** API keys saved through the setup window are encrypted with Electron's `safeStorage` (DPAPI on Windows, Keychain on macOS, libsecret on Linux) and kept in a separate `secret.bin` file. `config.json` continues to never contain the key.
+- `Controller.setConfig()` so settings changes apply live without restarting the app (rebuilds the analyzer with the new provider/model/key).
+
+### Changed
+
+- Startup no longer aborts on missing key — only quits if the user closes the setup window without configuring one.
+
 ## [0.1.0] - 2026-05-20
 
 Initial public release.
@@ -24,5 +36,6 @@ Initial public release.
 - Unit, integration, and end-to-end test suites (Vitest + Playwright) — 46 unit/integration tests covering pure logic, Anthropic SDK wiring, and OpenAI-compatible REST wiring.
 - Windows installers and portable builds for **x64** and **arm64**.
 
-[Unreleased]: https://github.com/mengzili/openmagicpointer/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/mengzili/openmagicpointer/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/mengzili/openmagicpointer/releases/tag/v0.1.1
 [0.1.0]: https://github.com/mengzili/openmagicpointer/releases/tag/v0.1.0

@@ -2,8 +2,12 @@ import { app } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 
+export type ProviderId = 'anthropic' | 'openai';
+
 export interface Config {
+  provider: ProviderId;
   apiKey: string;
+  baseURL: string;
   model: string;
   pollIntervalMs: number;
   idleThresholdMs: number;
@@ -17,7 +21,9 @@ export interface Config {
 }
 
 const DEFAULTS: Config = {
+  provider: 'anthropic',
   apiKey: '',
+  baseURL: '',
   model: 'claude-opus-4-7',
   pollIntervalMs: 4000,
   idleThresholdMs: 6000,
@@ -47,8 +53,14 @@ export function loadConfig(): Config {
   } catch (e) {
     console.warn('Failed to load config:', e);
   }
-  if (!cfg.apiKey && process.env.ANTHROPIC_API_KEY) {
-    cfg.apiKey = process.env.ANTHROPIC_API_KEY;
+  // Pick up API keys from the matching env var. Both checked so users can
+  // switch providers without re-exporting.
+  if (!cfg.apiKey) {
+    const envKey =
+      cfg.provider === 'openai'
+        ? process.env.OPENAI_API_KEY
+        : process.env.ANTHROPIC_API_KEY;
+    if (envKey) cfg.apiKey = envKey;
   }
   return cfg;
 }

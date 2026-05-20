@@ -29,11 +29,15 @@ let overlay: OverlayWindow | null = null;
 app.whenReady().then(() => {
   const cfg = loadConfig();
 
-  if (!cfg.apiKey && !isTestMode) {
+  // Allow no API key when targeting a local OpenAI-compatible server (Ollama,
+  // LM Studio, llama.cpp, vLLM) — those typically don't need one.
+  const needsKey = !(cfg.provider === 'openai' && cfg.baseURL && isLocalUrl(cfg.baseURL));
+  if (needsKey && !cfg.apiKey && !isTestMode) {
+    const envName = cfg.provider === 'openai' ? 'OPENAI_API_KEY' : 'ANTHROPIC_API_KEY';
     dialog.showErrorBox(
       'OpenMagicPointer',
-      `No ANTHROPIC_API_KEY found.\n\n` +
-        `Set the ANTHROPIC_API_KEY environment variable, or add an "apiKey" field to:\n${configPath()}`,
+      `No ${envName} found for provider "${cfg.provider}".\n\n` +
+        `Set the ${envName} environment variable, or add an "apiKey" field to:\n${configPath()}`,
     );
     app.quit();
     return;
@@ -72,6 +76,15 @@ app.whenReady().then(() => {
     controller.start();
   }
 });
+
+function isLocalUrl(url: string): boolean {
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    return host === 'localhost' || host === '127.0.0.1' || host === '::1' || host.endsWith('.local');
+  } catch {
+    return false;
+  }
+}
 
 function registerHotkey(accelerator: string, handler: () => void): void {
   try {

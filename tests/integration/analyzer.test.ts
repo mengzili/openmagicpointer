@@ -66,7 +66,7 @@ describe('Analyzer.analyze', () => {
         }),
       ),
     );
-    const a = new Analyzer('test-key', 'claude-opus-4-7');
+    const a = new Analyzer({ provider: 'anthropic', apiKey: 'test-key', model: 'claude-opus-4-7' });
     const result = await a.analyze(input({ cursorX: 100, cursorY: 200, idleMs: 8000 }));
     expect(result).not.toBeNull();
     expect(result!.needsHint).toBe(true);
@@ -85,7 +85,7 @@ describe('Analyzer.analyze', () => {
         }),
       ),
     );
-    const a = new Analyzer('test-key', 'claude-opus-4-7');
+    const a = new Analyzer({ provider: 'anthropic', apiKey: 'test-key', model: 'claude-opus-4-7' });
     const result = await a.analyze(input({ idleMs: 5000 }));
     expect(result).not.toBeNull();
     expect(result!.needsHint).toBe(false);
@@ -95,7 +95,7 @@ describe('Analyzer.analyze', () => {
     mocks.createMock.mockResolvedValue(
       fakeResponse(JSON.stringify({ needs_hint: false, hint: '', confidence: 'low', reason: 'x' })),
     );
-    const a = new Analyzer('test-key', 'claude-opus-4-7');
+    const a = new Analyzer({ provider: 'anthropic', apiKey: 'test-key', model: 'claude-opus-4-7' });
     await a.analyze(input({ cursorX: 50, cursorY: 60, screenWidth: 800, screenHeight: 600 }));
     expect(mocks.createMock).toHaveBeenCalledOnce();
     const callArgs = mocks.createMock.mock.calls[0][0];
@@ -113,7 +113,7 @@ describe('Analyzer.analyze', () => {
     mocks.createMock.mockResolvedValue(
       fakeResponse(JSON.stringify({ needs_hint: false, hint: '', confidence: 'low', reason: 'x' })),
     );
-    const a = new Analyzer('test-key', 'claude-opus-4-7');
+    const a = new Analyzer({ provider: 'anthropic', apiKey: 'test-key', model: 'claude-opus-4-7' });
     await a.analyze(input());
     const callArgs = mocks.createMock.mock.calls[0][0];
     expect(Array.isArray(callArgs.system)).toBe(true);
@@ -124,7 +124,7 @@ describe('Analyzer.analyze', () => {
     mocks.createMock.mockResolvedValue(
       fakeResponse(JSON.stringify({ needs_hint: false, hint: '', confidence: 'low', reason: 'x' })),
     );
-    const a = new Analyzer('test-key', 'claude-opus-4-7');
+    const a = new Analyzer({ provider: 'anthropic', apiKey: 'test-key', model: 'claude-opus-4-7' });
     await a.analyze(input());
     const callArgs = mocks.createMock.mock.calls[0][0];
     expect(callArgs.output_config.format.type).toBe('json_schema');
@@ -135,7 +135,7 @@ describe('Analyzer.analyze', () => {
     mocks.createMock.mockResolvedValue(
       fakeResponse(JSON.stringify({ needs_hint: false, hint: '', confidence: 'low', reason: 'x' })),
     );
-    const a = new Analyzer('test-key', 'claude-opus-4-7');
+    const a = new Analyzer({ provider: 'anthropic', apiKey: 'test-key', model: 'claude-opus-4-7' });
     await a.analyze(input({ idleMs: 0, userRequested: true }));
     const callArgs = mocks.createMock.mock.calls[0][0];
     const textBlock = callArgs.messages[0].content.find((b: any) => b.type === 'text');
@@ -144,21 +144,21 @@ describe('Analyzer.analyze', () => {
 
   it('returns null when the model returns invalid JSON', async () => {
     mocks.createMock.mockResolvedValue(fakeResponse('not json at all'));
-    const a = new Analyzer('test-key', 'claude-opus-4-7');
+    const a = new Analyzer({ provider: 'anthropic', apiKey: 'test-key', model: 'claude-opus-4-7' });
     const result = await a.analyze(input());
     expect(result).toBeNull();
   });
 
   it('returns null when the SDK throws an APIError', async () => {
     mocks.createMock.mockRejectedValue(new mocks.FakeAPIError(429, 'rate limited'));
-    const a = new Analyzer('test-key', 'claude-opus-4-7');
+    const a = new Analyzer({ provider: 'anthropic', apiKey: 'test-key', model: 'claude-opus-4-7' });
     const result = await a.analyze(input());
     expect(result).toBeNull();
   });
 
   it('returns null when the SDK throws a generic error', async () => {
     mocks.createMock.mockRejectedValue(new Error('network down'));
-    const a = new Analyzer('test-key', 'claude-opus-4-7');
+    const a = new Analyzer({ provider: 'anthropic', apiKey: 'test-key', model: 'claude-opus-4-7' });
     const result = await a.analyze(input());
     expect(result).toBeNull();
   });

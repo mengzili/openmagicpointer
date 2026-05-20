@@ -58,6 +58,7 @@
     "appId": "com.openmagicpointer.app",
     "productName": "OpenMagicPointer",
     "copyright": "Copyright © 2026 Zili Meng",
+    "npmRebuild": false,
     "directories": {
       "output": "release"
     },

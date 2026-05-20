@@ -19,7 +19,12 @@ export class Controller {
   constructor(cfg: Config, overlay: OverlayWindow) {
     this.cfg = cfg;
     this.tracker = new ActivityTracker();
-    this.analyzer = new Analyzer(cfg.apiKey, cfg.model);
+    this.analyzer = new Analyzer({
+      provider: cfg.provider,
+      apiKey: cfg.apiKey,
+      model: cfg.model,
+      baseURL: cfg.baseURL,
+    });
     this.overlay = overlay;
     this.enabled = cfg.enabled;
   }
